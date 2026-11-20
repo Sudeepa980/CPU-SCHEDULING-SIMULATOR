@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CPU Scheduling Simulator</title>
+<style>
+:root{--bg:#f6f8fa;--pn:#fff;--ink:#1f2328;--mu:#59636e;--ln:#d1d9e0;--rd:#cf222e;--yl:#ffd33d;--hd:#24292f;--ht:#fff;--cd:#f6f8fa;--gr:#1f883d;--bl:#0969da;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d1117;--pn:#161b22;--ink:#e6edf3;--mu:#9198a1;--ln:#30363d;--rd:#ff7b72;--hd:#010409;--cd:#0d1117;--gr:#238636;--bl:#1f6feb;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0d1117;--pn:#161b22;--ink:#e6edf3;--mu:#9198a1;--ln:#30363d;--rd:#ff7b72;--hd:#010409;--cd:#0d1117;--gr:#238636;--bl:#1f6feb;color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif;font-variant-numeric:tabular-nums}
+.wrap{max-width:1000px;margin:0 auto;padding:0 12px 40px}
+header{background:var(--hd);color:var(--ht);display:flex;gap:16px;align-items:center;padding:16px;margin:0 -12px 16px;flex-wrap:wrap}
+header div.t{flex:1;min-width:220px}
+h1{font-size:1.9rem;line-height:1.1;margin:0 0 4px;font-weight:700;letter-spacing:-.5px}
+header p{margin:0;opacity:.85;max-width:52ch}
+#clockbox{text-align:center;font-weight:700}#clk{display:block;font-size:1.3rem}
+.sec{margin-bottom:16px}
+.sec>h2{margin:0;background:var(--cd);color:var(--ink);font-size:14px;font-weight:600;padding:10px 14px;border:1px solid var(--ln);border-radius:6px 6px 0 0}
+.bd{background:var(--pn);border:1px solid var(--ln);border-top:0;padding:14px;border-radius:0 0 6px 6px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+label{font-size:.8rem;color:var(--mu);display:block;font-weight:600}
+input,select{font:inherit;padding:6px 8px;border:1px solid var(--ln);background:var(--pn);color:var(--ink);border-radius:6px;width:84px}
+select{width:auto}input[type=range]{width:100%;padding:0}
+button{font:inherit;font-weight:600;padding:5px 14px;border:1px solid var(--ln);background:var(--cd);color:var(--ink);cursor:pointer;border-radius:6px}
+button.go{background:var(--gr);color:#fff;border-color:#0000}button.on{background:var(--bl);color:#fff;border-color:#0000}
+button:hover{filter:brightness(.93)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--rd);outline-offset:2px}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.note{color:var(--mu);font-size:.85rem;margin:8px 0 0}
+.station{display:grid;grid-template-columns:1.2fr 18px 1fr 18px 1.2fr;gap:0;align-items:stretch}
+.zone{background:var(--cd);padding:10px;min-height:150px}
+.zone h3{margin:0 0 8px;font-size:.9rem}
+.edge{background:repeating-linear-gradient(135deg,var(--yl) 0 6px,#101820 6px 12px)}
+.chip{display:inline-block;margin:0 6px 6px 0;padding:4px 9px;border-radius:2px;color:#101820;font-weight:700;border:1px solid #0004}
+.chip small{font-weight:400;display:block;font-size:.72rem}
+.cpu{height:84px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:1.6rem;font-weight:700;color:#101820;border-radius:2px;border:3px solid var(--rd)}
+.cpu.idle{background:transparent;color:var(--mu);border-style:dashed;border-color:var(--ln)}
+.bar{width:80%;height:6px;background:#0003;margin-top:6px}.bar i{display:block;height:100%;background:#101820}
+.gw{overflow-x:auto;padding-bottom:4px}
+#gantt{position:relative;height:84px;margin:4px 0}
+.gb{position:absolute;top:4px;height:42px;display:flex;align-items:center;justify-content:center;font-weight:700;color:#101820;border:1px solid #0006;overflow:hidden}
+.gb.f{opacity:.2}.gb.id{background:repeating-linear-gradient(135deg,var(--ln) 0 4px,transparent 4px 8px)!important;color:var(--mu)}
+.rl{position:absolute;top:50px;font-size:.7rem;color:var(--mu);transform:translateX(-50%)}
+.rl:before{content:"";position:absolute;left:50%;top:-6px;height:5px;border-left:1px solid var(--mu)}
+#ph{position:absolute;top:0;height:50px;border-left:3px solid var(--rd);transition:left .25s}
+#ph:before{content:"";position:absolute;left:-7px;top:-2px;width:11px;height:11px;border-radius:50%;background:var(--rd)}
+.ctl{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:560px}
+th,td{padding:5px 8px;border-bottom:1px solid var(--ln);text-align:center}th{color:var(--mu);font-size:.82rem}
+td.sw span{display:inline-block;padding:1px 8px;font-weight:700;color:#101820;border-radius:2px}
+tr.run{background:color-mix(in srgb,var(--yl) 45%,transparent)}
+td.nw{outline:2px solid var(--rd);outline-offset:-2px;font-weight:700}
+td button{padding:0 7px;border-width:1px}
+tr.best td{background:color-mix(in srgb,var(--yl) 45%,transparent);font-weight:700}
+#met{margin-top:8px;font-weight:600}
+#log{list-style:none;margin:0;padding:0;max-height:220px;overflow:auto}
+#log li{padding:4px 6px;border-bottom:1px dashed var(--ln)}#log li.c{background:color-mix(in srgb,var(--yl) 45%,transparent)}
+#log b{display:inline-block;min-width:56px;color:var(--rd)}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.pane{display:none}.pane.on{display:block}
+pre{background:var(--cd);padding:10px;overflow-x:auto;font:.8rem/1.45 ui-monospace,Menlo,Consolas,monospace;margin:6px 0;border-left:4px solid var(--yl)}
+@media(max-width:640px){.station{grid-template-columns:1fr}.edge{height:14px}}
+@media(prefers-reduced-motion:reduce){#ph{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<div class="t"><h1>CPU Scheduling Simulator</h1><p>Operating Systems lab. Think of a station with one platform: processes are trains, the CPU is the platform, and the scheduler is the dispatcher who decides which train departs next.</p></div>
+<div id="clockbox"><svg width="86" height="86" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="47" fill="#fff" stroke="#101820" stroke-width="4"/><g id="tk" stroke="#101820" stroke-width="3"></g><g id="hand" style="transition:transform .25s"><line x1="50" y1="50" x2="50" y2="14" stroke="#d5281b" stroke-width="3"/><circle cx="50" cy="12" r="6" fill="#d5281b"/></g><circle cx="50" cy="50" r="3" fill="#101820"/></svg><span id="clk">t = 0</span></div>
+</header>
+
+<section class="sec"><h2>1. Add trains (processes)</h2><div class="bd">
+<div class="row">
+<div><label for="at">Arrival time</label><input id="at" type="number" min="0" value="0"></div>
+<div><label for="bt">Burst time</label><input id="bt" type="number" min="1" value="4"></div>
+<div><label for="pr">Priority</label><input id="pr" type="number" min="1" value="1"></div>
+<button class="go" id="add">Add process</button><button id="rnd">Random set</button><button id="smp">Sample set</button><button id="clr">Clear</button>
+</div>
+<p class="note">Lower priority number means higher priority. Time is counted in whole units.</p>
+</div></section>
+
+<section class="sec"><h2>2. Pick a scheduling algorithm</h2><div class="bd">
+<div class="seg" id="algos"></div>
+<div class="row" style="margin-top:10px"><div><label for="q">Time quantum (RR)</label><input id="q" type="number" min="1" value="2"></div><button class="go" id="run">Run simulation</button><button id="fin">Show final result</button><button id="cmp">Compare all algorithms</button></div>
+<p class="note" id="desc"></p>
+</div></section>
+
+<section class="sec"><h2 id="stn">3. The station</h2><div class="bd">
+<div class="ctl">
+<button id="bk">Step back</button><button class="go" id="pl">Play</button><button id="fw">Step forward</button><button id="rs">Reset</button>
+<div><label for="sp">Speed</label><select id="sp"><option value="1800">Slow</option><option value="900" selected>Normal</option><option value="350">Fast</option></select></div>
+<div style="flex:1;min-width:140px"><label for="sl">Scrub the timeline</label><input id="sl" type="range" min="0" max="0" value="0"></div>
+</div>
+<div class="station">
+<div class="zone"><h3>Ready queue (waiting on the siding)</h3><div id="rq"></div></div><div class="edge"></div>
+<div class="zone"><h3>CPU (the platform)</h3><div id="cpu" class="cpu idle">idle</div></div><div class="edge"></div>
+<div class="zone"><h3>Finished (departed)</h3><div id="dn"></div></div>
+</div>
+</div></section>
+
+<section class="sec"><h2>Gantt chart</h2><div class="bd gw"><div id="gantt"></div></div></section>
+
+<section class="sec"><h2>Process table</h2><div class="bd"><div class="tw"><table><thead><tr><th>PID</th><th>Arrival</th><th>Burst</th><th>Priority</th><th>Remaining</th><th>Completion</th><th>Turnaround</th><th>Waiting</th><th></th></tr></thead><tbody id="tb"></tbody></table></div><div id="met"></div></div></section>
+
+<section class="sec"><h2>Operation log</h2><div class="bd"><ul id="log"></ul></div></section>
+
+<section class="sec" id="cmpsec" hidden><h2>Algorithm comparison (same processes)</h2><div class="bd tw"><table><thead><tr><th>Algorithm</th><th>Avg turnaround</th><th>Avg waiting</th><th>Context switches</th><th>CPU use</th></tr></thead><tbody id="ct"></tbody></table><p class="note">Highlighted row has the lowest average waiting time.</p></div></section>
+
+<section class="sec"><h2>Lab manual</h2><div class="bd">
+<div class="tabs" id="tabs"></div>
+<div class="pane" data-t="Aim"><p><b>Aim:</b> To simulate FCFS, SJF, SRTF, Priority, Round Robin and Multi-Level Feedback Queue scheduling, draw the Gantt chart, and find completion, turnaround and waiting times.</p>
+<pre>Turnaround Time = Completion Time - Arrival Time
+Waiting Time    = Turnaround Time - Burst Time
+CPU use         = busy time / total time</pre>
+<p>FCFS and SJF and Priority here are non-preemptive. SRTF is the preemptive form of SJF. MLFQ has Q0 (quantum 2), Q1 (quantum 4) and Q2 (FCFS). A process that uses its full slice moves down one queue, and a waiting process in a higher queue preempts a running one.</p></div>
+<div class="pane" data-t="Pseudo code"><pre>FCFS:     run ready processes in order of arrival
+SJF:      when CPU is free, pick ready process with smallest burst
+SRTF:     every time unit, run the ready process with least remaining time
+Priority: when CPU is free, pick ready process with best (lowest) priority number
+RR(q):    queue = ready processes
+          loop: p = dequeue(); run min(q, p.remaining)
+                add new arrivals to queue; if p not finished enqueue(p)
+MLFQ:     run first process of highest non-empty queue
+          if it used its whole quantum: demote one level
+          if a higher queue becomes non-empty: preempt
+
+for each process:
+    CT = time it finished
+    TAT = CT - AT;  WT = TAT - BT</pre></div>
+<div class="pane" data-t="C code"><pre>#include &lt;stdio.h&gt;
+/* FCFS: processes entered in arrival order */
+int main(void) {
+    int n, at[20], bt[20], t = 0;
+    float sw = 0, st = 0;
+    printf("Number of processes: ");
+    scanf("%d", &amp;n);
+    for (int i = 0; i &lt; n; i++) {
+        printf("P%d arrival and burst: ", i + 1);
+        scanf("%d %d", &amp;at[i], &amp;bt[i]);
+    }
+    printf("PID AT BT CT TAT WT\n");
+    for (int i = 0; i &lt; n; i++) {
+        if (t &lt; at[i]) t = at[i];          /* CPU idle */
+        t += bt[i];
+        int tat = t - at[i], wt = tat - bt[i];
+        printf("P%d  %d  %d  %d  %d  %d\n", i + 1, at[i], bt[i], t, tat, wt);
+        st += tat; sw += wt;
+    }
+    printf("Avg TAT = %.2f  Avg WT = %.2f\n", st / n, sw / n);
+    return 0;
+}</pre></div>
+<div class="pane" data-t="Input / Output"><p><b>Input</b> (use "Sample set" in this simulator)</p><pre>4
+0 5
+1 3
+2 8
+3 6</pre><p><b>Output (FCFS)</b></p><pre>PID AT BT CT TAT WT
+P1  0  5  5  5   0
+P2  1  3  8  7   4
+P3  2  8  16 14  6
+P4  3  6  22 19  13
+Avg TAT = 11.25  Avg WT = 5.75</pre></div>
+<div class="pane" data-t="FAQ">
+<p><b>What is the convoy effect?</b> Short processes wait behind one long process in FCFS, so average waiting time rises.</p>
+<p><b>Which algorithm gives the lowest average waiting time?</b> SRTF (and SJF when all arrive together) is optimal, but it needs burst times in advance and can starve long jobs.</p>
+<p><b>How does the RR quantum matter?</b> A huge quantum behaves like FCFS. A tiny one wastes time on context switches.</p>
+<p><b>What is starvation, and how is it fixed?</b> A process waits forever because others always win. Aging, which slowly improves its priority, fixes it.</p>
+<p><b>Why use MLFQ?</b> It favours short and interactive jobs without knowing burst times.</p></div>
+<div class="pane" data-t="Kernel types"><p><b>Monolithic kernel:</b> the scheduler, file system, drivers and memory manager all run in kernel space as one program. Fast because calls are direct, but one faulty driver can crash the system. Examples: Linux, classic UNIX, MS-DOS.</p><p><b>Microkernel:</b> only IPC, basic scheduling and memory management stay in the kernel. Drivers and file systems run as user-space servers. More stable and secure, but message passing adds overhead. Examples: MINIX 3, QNX, L4, Mach.</p><p><b>Layered kernel:</b> the OS is built as layers, from hardware at layer 0 up to the user interface, and each layer uses only the one below it. Easy to debug and verify, but hard to order and slower through many layers. Examples: THE operating system, early VMS.</p></div>
+</div></section>
+</div>
+
+<script>
+(function(){
+var $=function(i){return document.getElementById(i)};
+var AL={FCFS:["FCFS","Runs processes in order of arrival. Simple, but short jobs can wait behind a long one."],SJF:["SJF","When the CPU is free, picks the ready process with the smallest burst time. Not preemptive."],SRTF:["SRTF","Preemptive SJF. Every time unit the process with least remaining time runs."],PRIO:["Priority","When the CPU is free, picks the best priority number (lower is better). Not preemptive."],RR:["Round Robin","Each process runs for at most one quantum, then goes to the back of the queue."],MLFQ:["MLFQ","Three queues (quantum 2, 4, then FCFS). Using a full slice demotes a process. A higher queue preempts a lower one."]};
+var COL=["#ffb4a2","#a2d2ff","#b9fbc0","#ffd166","#cdb4db","#90e0ef","#f4a261","#c7f9cc","#ff99c8","#e4c1f9","#d0f4de","#fcf6bd"];
+var P=[],nid=1,algo="FCFS",R=null,s=0,timer=null,U=30;
+function col(id){return COL[(+id.slice(1)-1)%12]}
+function chip(id,sub){return '<span class="chip" style="background:'+col(id)+'">'+id+(sub?'<small>'+sub+'</small>':'')+'</span>'}
+
+function sim(al,q,PR){
+  var T=PR.map(function(p){return{id:p.id,at:p.at,bt:p.bt,pr:p.pr,rem:p.bt,lv:0,ct:0}});
+  var Q=[],cur=null,used=0,t=0,left=T.length,snaps=[],log=[],segs=[],last=null,cs=0,busy=0,wasIdle=false;
+  var WHY={FCFS:"it arrived earliest",SJF:"it has the shortest burst",SRTF:"it has the least remaining time",PRIO:"it has the best priority",RR:"it is at the front of the queue",MLFQ:"it leads the highest non-empty queue"};
+  function pick(){
+    if(al==="SJF")return Q.reduce(function(a,b){return b.bt<a.bt?b:a});
+    if(al==="SRTF")return Q.reduce(function(a,b){return b.rem<a.rem?b:a});
+    if(al==="PRIO")return Q.reduce(function(a,b){return b.pr<a.pr?b:a});
+    if(al==="MLFQ"){var l=Math.min.apply(null,Q.map(function(x){return x.lv}));return Q.filter(function(x){return x.lv===l})[0]}
+    return Q[0];
+  }
+  function L(tt,m){log.push({t:tt,m:m})}
+  while(left>0){
+    T.filter(function(p){return p.at===t}).forEach(function(p){Q.push(p);L(t,p.id+" arrives (burst "+p.bt+", priority "+p.pr+") and joins the ready queue.")});
+    if(cur){
+      var why=null;
+      if(al==="SRTF"&&Q.length){var b=pick();if(b.rem<cur.rem)why=b.id+" needs less time ("+b.rem+" < "+cur.rem+")"}
+      if(al==="RR"&&used>=q)why="its quantum of "+q+" is used up";
+      if(al==="MLFQ"){
+        if(used>=[2,4,1e9][cur.lv]){cur.lv=Math.min(2,cur.lv+1);why="it used its full slice and drops to Q"+cur.lv}
+        else if(Q.some(function(x){return x.lv<cur.lv}))why="a process in a higher queue is waiting";
+      }
+      if(why){L(t,cur.id+" is preempted because "+why+".");Q.push(cur);cur=null}
+    }
+    if(!cur&&Q.length){
+      cur=pick();Q.splice(Q.indexOf(cur),1);used=0;
+      if(last&&last!==cur.id)cs++;
+      L(t,"Dispatch "+cur.id+" because "+WHY[al]+(al==="MLFQ"?" (Q"+cur.lv+")":"")+". Remaining: "+cur.rem+".");
+    }
+    snaps.push({run:cur?cur.id:null,rem:cur?cur.rem:0,bt:cur?cur.bt:0,q:Q.map(function(x){return[x.id,x.rem,x.lv]}),done:T.filter(function(x){return x.ct&&x.ct<=t}).map(function(x){return x.id})});
+    var id=cur?cur.id:"idle",sg=segs[segs.length-1];
+    if(sg&&sg.id===id&&sg.e===t)sg.e=t+1;else segs.push({id:id,s:t,e:t+1});
+    if(cur){
+      busy++;last=cur.id;wasIdle=false;cur.rem--;used++;
+      if(cur.rem===0){cur.ct=t+1;left--;L(t+1,cur.id+" finishes at time "+(t+1)+". TAT = "+(t+1-cur.at)+", WT = "+(t+1-cur.at-cur.bt)+".");cur=null}
+    }else{last=null;if(!wasIdle)L(t,"Ready queue is empty, so the CPU idles.");wasIdle=true}
+    t++;
+  }
+  snaps.push({run:null,rem:0,bt:0,q:[],done:T.map(function(x){return x.id})});
+  var st=0,sw=0;T.forEach(function(p){st+=p.ct-p.at;sw+=p.ct-p.at-p.bt});
+  return{T:T,snaps:snaps,log:log,segs:segs,end:t,atat:st/T.length,awt:sw/T.length,cs:cs,util:busy/t*100};
+}
+
+function build(){
+  stop();s=0;$("desc").textContent=AL[algo][1];
+  R=P.length?sim(algo,Math.max(1,parseInt($("q").value)||2),P):null;
+  var g=$("gantt");
+  if(!R){g.innerHTML="";g.style.width="auto";$("sl").max=0;paint();return}
+  var h='';
+  R.segs.forEach(function(x,i){h+='<div class="gb'+(x.id==="idle"?" id":"")+'" id="g'+i+'" style="left:'+x.s*U+'px;width:'+(x.e-x.s)*U+'px;background:'+(x.id==="idle"?"":col(x.id))+'">'+(x.e-x.s>=1?(x.id==="idle"?"idle":x.id):"")+'</div>'});
+  for(var k=0;k<=R.end;k++)if(R.end<=40||k%5===0||k===R.end)h+='<div class="rl" style="left:'+k*U+'px">'+k+'</div>';
+  h+='<div id="ph"></div>';
+  g.innerHTML=h;g.style.width=(R.end*U+10)+"px";$("sl").max=R.end;
+  paint();
+}
+
+function paint(){
+  var tb=$("tb");
+  $("clk").textContent="t = "+s;$("hand").style.transform="rotate("+(s*30)+"deg)";$("hand").style.transformOrigin="50px 50px";
+  if(!R){tb.innerHTML="";$("rq").innerHTML="";$("dn").innerHTML="";$("log").innerHTML="";$("met").textContent="";$("cpu").className="cpu idle";$("cpu").textContent="idle";return}
+  var sn=R.snaps[s];$("sl").value=s;
+  $("rq").innerHTML=sn.q.length?sn.q.map(function(x){return chip(x[0],"left "+x[1]+(algo==="MLFQ"?", Q"+x[2]:""))}).join(""):'<span class="note">empty</span>';
+  $("dn").innerHTML=sn.done.length?sn.done.map(function(x){return chip(x)}).join(""):'<span class="note">none yet</span>';
+  var c=$("cpu");
+  if(sn.run){c.className="cpu";c.style.background=col(sn.run);c.innerHTML=sn.run+'<div class="bar"><i style="width:'+((sn.bt-sn.rem)/sn.bt*100)+'%"></i></div>'}
+  else{c.className="cpu idle";c.style.background="";c.textContent=s>=R.end?"all done":"idle"}
+  R.segs.forEach(function(x,i){var e=$("g"+i);if(e)e.classList.toggle("f",x.s>=s)});
+  $("ph").style.left=s*U+"px";
+  var h="";
+  R.T.forEach(function(p){
+    var ex=0;for(var k=0;k<s&&k<R.end;k++)if(R.snaps[k].run===p.id)ex++;
+    var fin=p.ct<=s&&p.ct>0,nw=fin&&p.ct===s?' class="nw"':"";
+    h+='<tr'+(sn.run===p.id?' class="run"':"")+'><td class="sw"><span style="background:'+col(p.id)+'">'+p.id+'</span></td><td>'+p.at+'</td><td>'+p.bt+'</td><td>'+p.pr+'</td><td>'+(p.bt-ex)+'</td><td'+nw+'>'+(fin?p.ct:"-")+'</td><td'+nw+'>'+(fin?p.ct-p.at:"-")+'</td><td'+nw+'>'+(fin?p.ct-p.at-p.bt:"-")+'</td><td><button data-d="'+p.id+'" aria-label="Delete '+p.id+'">x</button></td></tr>';
+  });
+  tb.innerHTML=h;
+  $("met").textContent=s>=R.end?"Avg turnaround "+R.atat.toFixed(2)+"  |  Avg waiting "+R.awt.toFixed(2)+"  |  CPU use "+R.util.toFixed(0)+"%  |  Context switches "+R.cs+"  |  Throughput "+(R.T.length/R.end).toFixed(2)+" per unit":"";
+  var L=$("log"),lh="";
+  R.log.forEach(function(e){if(e.t<=s)lh+='<li'+(e.t===s?' class="c"':"")+'><b>t = '+e.t+'</b>'+e.m+'</li>'});
+  L.innerHTML=lh;L.scrollTop=L.scrollHeight;
+  $("pl").textContent=timer?"Pause":"Play";
+}
+
+function stop(){if(timer){clearInterval(timer);timer=null}var b=$("pl");if(b)b.textContent="Play"}
+function go(n){if(!R)return;s=Math.max(0,Math.min(R.end,n));paint()}
+$("pl").onclick=function(){
+  if(!R)return;
+  if(timer){stop();return}
+  if(s>=R.end)s=0;
+  timer=setInterval(function(){if(s>=R.end){stop();paint();return}s++;paint();if(s>=R.end){stop();paint()}},+$("sp").value);paint();
+};
+$("sp").onchange=function(){if(timer){clearInterval(timer);timer=null;$("pl").click()}};
+$("fw").onclick=function(){stop();go(s+1)};$("bk").onclick=function(){stop();go(s-1)};$("rs").onclick=function(){stop();go(0)};
+$("sl").oninput=function(){stop();go(+this.value)};
+function runSim(){
+  if(!R){$("desc").textContent="Add at least one process first, or press Random set.";return}
+  stop();s=0;paint();$("pl").click();$("stn").scrollIntoView({behavior:"smooth"});
+}
+$("run").onclick=runSim;
+$("fin").onclick=function(){if(!R)return;stop();go(R.end)};
+$("tb").onclick=function(e){var d=e.target.dataset.d;if(d){P=P.filter(function(p){return p.id!==d});build()}};
+$("add").onclick=function(){
+  var at=parseInt($("at").value),bt=parseInt($("bt").value),pr=parseInt($("pr").value);
+  if(isNaN(at)||at<0||isNaN(bt)||bt<1||isNaN(pr)||pr<1){$("desc").textContent="Arrival must be 0 or more. Burst and priority must be 1 or more.";return}
+  if(P.length>=12){$("desc").textContent="Maximum 12 processes.";return}
+  P.push({id:"P"+nid++,at:at,bt:bt,pr:pr});build();
+};
+$("smp").onclick=function(){nid=5;P=[[0,5,3],[1,3,1],[2,8,4],[3,6,2]].map(function(x,i){return{id:"P"+(i+1),at:x[0],bt:x[1],pr:x[2]}});build()};
+$("rnd").onclick=function(){var n=4+Math.floor(Math.random()*3);P=[];nid=1;for(var i=0;i<n;i++)P.push({id:"P"+nid++,at:Math.floor(Math.random()*8),bt:1+Math.floor(Math.random()*8),pr:1+Math.floor(Math.random()*5)});build();runSim()};
+$("clr").onclick=function(){P=[];nid=1;$("cmpsec").hidden=true;build()};
+$("q").onchange=build;
+$("cmp").onclick=function(){
+  if(!P.length){$("desc").textContent="Add processes first.";return}
+  var q=Math.max(1,parseInt($("q").value)||2),rs=Object.keys(AL).map(function(k){return[AL[k][0],sim(k,q,P)]});
+  var m=Math.min.apply(null,rs.map(function(r){return r[1].awt})),h="";
+  rs.forEach(function(r){var x=r[1];h+='<tr'+(x.awt===m?' class="best"':"")+'><td>'+r[0]+'</td><td>'+x.atat.toFixed(2)+'</td><td>'+x.awt.toFixed(2)+'</td><td>'+x.cs+'</td><td>'+x.util.toFixed(0)+'%</td></tr>'});
+  $("ct").innerHTML=h;$("cmpsec").hidden=false;$("cmpsec").scrollIntoView({behavior:"smooth"});
+};
+Object.keys(AL).forEach(function(k){
+  var b=document.createElement("button");b.textContent=AL[k][0];b.dataset.k=k;if(k===algo)b.className="on";
+  b.onclick=function(){algo=k;Array.prototype.forEach.call($("algos").children,function(x){x.className=x.dataset.k===k?"on":""});build();runSim()};
+  $("algos").appendChild(b);
+});
+var tk="";for(var i=0;i<12;i++){var a=i*30*Math.PI/180;tk+='<line x1="'+(50+38*Math.sin(a)).toFixed(1)+'" y1="'+(50-38*Math.cos(a)).toFixed(1)+'" x2="'+(50+43*Math.sin(a)).toFixed(1)+'" y2="'+(50-43*Math.cos(a)).toFixed(1)+'"/>'}
+$("tk").innerHTML=tk;
+var panes=document.querySelectorAll(".pane");
+panes.forEach(function(p,i){var b=document.createElement("button");b.textContent=p.dataset.t;b.onclick=function(){panes.forEach(function(x,j){x.classList.toggle("on",i===j)});Array.prototype.forEach.call($("tabs").children,function(y,j){y.className=i===j?"on":""})};$("tabs").appendChild(b)});
+$("tabs").children[0].click();
+$("smp").click();
+})();
+</script>
+</body>
+</html>
